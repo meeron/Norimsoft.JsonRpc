@@ -6,5 +6,6 @@ public static class WebApplicationExtensions
 {
     public static void UseJsonRpc(this WebApplication app)
     {
+        app.MapGet("/", () => "Hello World!");
     }
 }
