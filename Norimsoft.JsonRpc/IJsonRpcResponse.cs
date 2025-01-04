@@ -50,5 +50,7 @@ internal record Error(int Code, string Message, object? Data)
 {
     internal static Error ParseError(object? data = null) => new(-32700, "Parse error", data);
     internal static Error InvalidRequest(object? data = null) => new(-32600, "Invalid Request", data);
-    internal static Error ServerError(object? data = null) => new(-32000, "Server error", data);
+    internal static Error ServerError(Exception? ex = null) =>
+        new(-32000, "Server error", ex != null ? new { ex.Message, ex.StackTrace } : null);
+    internal static Error MethodNotFound() => new(-32601, "Method not found", null);
 }

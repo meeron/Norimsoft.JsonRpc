@@ -1,6 +1,6 @@
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Norimsoft.JsonRpc.Internal;
 
@@ -8,27 +8,45 @@ internal static class JsonRpcHandler
 {
     public static async Task<IResult> Handle(HttpContext ctx, CancellationToken ct)
     {
-        await Task.CompletedTask;
-        
-        var (errorResponse, rpcRequest) = await ParseAndValidateRequest(ctx.Request.Body, ct);
-        if (errorResponse != null)
+        try
         {
-            return Results.Ok(errorResponse);
-        }
+            var (errorResponse, rpcRequest) = await ParseAndValidateRequest(ctx.Request.Body, ct);
+            if (errorResponse != null)
+            {
+                return Results.Ok(errorResponse);
+            }
 
-        if (rpcRequest == null)
-        {
-            return Results.Ok(new JsonRpcResponseError(Error.ParseError("Not request found")));
-        }
+            if (rpcRequest == null)
+            {
+                return Results.Ok(new JsonRpcResponseError(Error.ParseError("Not request found")));
+            }
 
-        if (rpcRequest.Id == null)
-        {
-            return Results.Ok(new JsonRpcResponseError(Error.ServerError("Notifications are not implemented.")));
+            if (rpcRequest.Id == null)
+            {
+                return Results.Ok(new JsonRpcResponseError(
+                    Error.ServerError(new NotImplementedException("Notifications are not implemented."))));
+            }
+        
+            if (rpcRequest.Params == null)
+            {
+                var rpcMethod = ctx.RequestServices.GetKeyedService<JsonRpcMethod>(rpcRequest.Method);
+                if (rpcMethod == null)
+                {
+                    return Results.Ok(new JsonRpcResponseError(Error.MethodNotFound()));
+                }
+
+                rpcMethod.SetRequest(rpcRequest);
+                var response = await rpcMethod.Handle(ct);
+                return Results.Ok(response);
+            }
+        
+            return Results.Ok(new JsonRpcResponseError(
+                Error.ServerError(new NotImplementedException())));
         }
-        
-        var response = new JsonRpcResponseOk(rpcRequest.Id!.Value, "Hello World");
-        
-        return Results.Ok(response);
+        catch (Exception ex)
+        {
+            return Results.Ok(new JsonRpcResponseError(Error.ServerError(ex)));
+        }
     }
 
     private static async Task<(IJsonRpcResponse?, JsonRpcRequest?)> ParseAndValidateRequest(Stream body, CancellationToken ct)
@@ -66,6 +84,12 @@ internal static class JsonRpcHandler
                 return (new JsonRpcResponseError(Error.InvalidRequest("Invalid id. Must either integer or string")), null);
             }
             
+            if (req.Params != null && req.Params.Value.ValueKind != JsonValueKind.Object
+                               && req.Params.Value.ValueKind != JsonValueKind.Array)
+            {
+                return (new JsonRpcResponseError(Error.InvalidRequest("Invalid params. Must be either array or object")), null);
+            }
+            
             return (null, req);
         }
         catch (Exception e)
@@ -74,14 +98,4 @@ internal static class JsonRpcHandler
             return (new JsonRpcResponseError(Error.ParseError(new { e.Message, e.StackTrace })), null);
         }
     }
-}
-
-internal class JsonRpcRequest
-{
-    [JsonPropertyName("jsonrpc")]
-    public string JsonRpc { get; set; } = string.Empty;
-    [JsonPropertyName("method")]
-    public string Method { get; set; } = string.Empty;
-    [JsonPropertyName("id")]
-    public JsonElement? Id { get; set; }
 }
