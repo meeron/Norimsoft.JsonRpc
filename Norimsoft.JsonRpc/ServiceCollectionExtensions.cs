@@ -24,7 +24,8 @@ public static class ServiceCollectionExtensions
 
         foreach (var type in parameterlessMethodsTypes)
         {
-            services.AddKeyedScoped(typeof(JsonRpcMethod), type.Name, type);
+            var nameAttribute = type.GetCustomAttribute<JsonRpcMethodNameAttribute>();
+            services.AddKeyedScoped(typeof(JsonRpcMethod), nameAttribute?.Name ?? type.Name, type);
         }
     }
 }

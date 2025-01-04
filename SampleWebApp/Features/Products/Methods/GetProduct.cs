@@ -5,8 +5,6 @@ namespace SampleWebApp.Features.Products.Methods;
 
 public class GetProduct : JsonRpcMethod<GetProductParam>
 {
-    protected override string Name => "products.get";
-
     public override async Task<IJsonRpcResponse> Handle(GetProductParam param, CancellationToken ct)
     {
         await Task.CompletedTask;

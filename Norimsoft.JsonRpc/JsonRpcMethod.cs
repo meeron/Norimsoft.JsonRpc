@@ -5,8 +5,6 @@ namespace Norimsoft.JsonRpc;
 public abstract class JsonRpcMethodBase
 {
     private JsonRpcRequest? _request;
-    
-    protected virtual string Name => GetType().Name;
 
     protected IJsonRpcResponse Ok(object result) =>
         new JsonRpcResponseOk(_request!.Id!.Value, result);
@@ -30,4 +28,15 @@ public abstract class JsonRpcMethod<TParam> : JsonRpcMethodBase
 {
     public abstract Task<IJsonRpcResponse> Handle(TParam param, CancellationToken ct);
     
+}
+
+[AttributeUsage(AttributeTargets.Class)]
+public class JsonRpcMethodNameAttribute : Attribute
+{
+    public JsonRpcMethodNameAttribute(string name)
+    {
+        Name = name;
+    }
+
+    internal string Name { get; }
 }
