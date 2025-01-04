@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Norimsoft.JsonRpc;
@@ -6,7 +7,7 @@ public interface IJsonRpcResponse;
 
 internal abstract class JsonRpcResponseBase : IJsonRpcResponse
 {
-    protected JsonRpcResponseBase(string id)
+    protected JsonRpcResponseBase(JsonElement? id)
     {
         Id = id;
     }
@@ -14,12 +15,12 @@ internal abstract class JsonRpcResponseBase : IJsonRpcResponse
     [JsonPropertyName("jsonrpc")]
     public string JsonRpc { get; } = "2.0";
 
-    public string Id { get; }
+    public JsonElement? Id { get; }
 }
 
 internal class JsonRpcResponseOk : JsonRpcResponseBase
 {
-    internal JsonRpcResponseOk(string id, object result)
+    internal JsonRpcResponseOk(JsonElement id, object result)
         : base(id)
     {
         Result = result;
@@ -30,8 +31,14 @@ internal class JsonRpcResponseOk : JsonRpcResponseBase
 
 internal class JsonRpcResponseError : JsonRpcResponseBase
 {
-    internal JsonRpcResponseError(string id, Error error)
+    internal JsonRpcResponseError(JsonElement id, Error error)
         : base(id)
+    {
+        Error = error;
+    }
+    
+    internal JsonRpcResponseError(Error error)
+        : base(null)
     {
         Error = error;
     }
@@ -39,4 +46,9 @@ internal class JsonRpcResponseError : JsonRpcResponseBase
     public Error Error { get; }
 }
 
-internal record Error(int Code, string Message, object? Data);
+internal record Error(int Code, string Message, object? Data)
+{
+    internal static Error ParseError(object? data = null) => new(-32700, "Parse error", data);
+    internal static Error InvalidRequest(object? data = null) => new(-32600, "Invalid Request", data);
+    internal static Error ServerError(object? data = null) => new(-32000, "Server error", data);
+}
