@@ -21,11 +21,23 @@ public static class ServiceCollectionExtensions
             .Where(t => t is { IsClass: true, IsAbstract: false, IsGenericType: false })
             .Where(t => t.BaseType == typeof(JsonRpcMethod))
             .ToArray();
+        
+        var parameterMethodsTypes = config.MethodsAssemblies
+            .SelectMany(a => a.GetTypes())
+            .Where(t => t is { IsClass: true, IsAbstract: false, IsGenericType: false })
+            .Where(t => t.BaseType != null && t.BaseType.BaseType == typeof(JsonRpcMethodBaseParam))
+            .ToArray();
 
         foreach (var type in parameterlessMethodsTypes)
         {
             var nameAttribute = type.GetCustomAttribute<JsonRpcMethodNameAttribute>();
             services.AddKeyedScoped(typeof(JsonRpcMethod), nameAttribute?.Name ?? type.Name, type);
+        }
+        
+        foreach (var type in parameterMethodsTypes)
+        {
+            var nameAttribute = type.GetCustomAttribute<JsonRpcMethodNameAttribute>();
+            services.AddKeyedScoped(typeof(JsonRpcMethodBaseParam), nameAttribute?.Name ?? type.Name, type);
         }
     }
 }

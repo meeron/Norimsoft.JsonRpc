@@ -9,7 +9,7 @@ public class GetProduct : JsonRpcMethod<GetProductParam>
     {
         await Task.CompletedTask;
         //return Ok(new Product());
-        return Error(404, "Product not found");
+        return Error(404,$"Product '{param.Id}' not found");
     }
 }
 

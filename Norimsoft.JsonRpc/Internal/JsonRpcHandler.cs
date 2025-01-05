@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -39,9 +40,17 @@ internal static class JsonRpcHandler
                 var response = await rpcMethod.Handle(ct);
                 return Results.Ok(response);
             }
+            
+            var parameterRpcMethod = ctx.RequestServices.GetKeyedService<JsonRpcMethodBaseParam>(rpcRequest.Method);
+            if (parameterRpcMethod == null)
+            {
+                return Results.Ok(new JsonRpcResponseError(Error.MethodNotFound()));
+            }
+            
+            parameterRpcMethod.SetRequest(rpcRequest);
+            var res = await parameterRpcMethod.HandleInternal(ct);
         
-            return Results.Ok(new JsonRpcResponseError(
-                Error.ServerError(new NotImplementedException())));
+            return Results.Ok(res);
         }
         catch (Exception ex)
         {

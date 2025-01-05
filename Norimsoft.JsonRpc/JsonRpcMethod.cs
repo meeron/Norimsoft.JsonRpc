@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Norimsoft.JsonRpc.Internal;
 
 namespace Norimsoft.JsonRpc;
@@ -5,6 +6,8 @@ namespace Norimsoft.JsonRpc;
 public abstract class JsonRpcMethodBase
 {
     private JsonRpcRequest? _request;
+
+    internal JsonRpcRequest Request => _request!;
 
     protected IJsonRpcResponse Ok(object result) =>
         new JsonRpcResponseOk(_request!.Id!.Value, result);
@@ -18,16 +21,26 @@ public abstract class JsonRpcMethodBase
     }
 }
 
+public abstract class JsonRpcMethodBaseParam : JsonRpcMethodBase
+{
+    internal abstract Task<IJsonRpcResponse> HandleInternal(CancellationToken ct);
+}
+
 public abstract class JsonRpcMethod : JsonRpcMethodBase
 {
     public abstract Task<IJsonRpcResponse> Handle(CancellationToken ct);
 }
 
-public abstract class JsonRpcMethod<TParam> : JsonRpcMethodBase
+public abstract class JsonRpcMethod<TParam> : JsonRpcMethodBaseParam
     where TParam : class
 {
     public abstract Task<IJsonRpcResponse> Handle(TParam param, CancellationToken ct);
-    
+
+    internal override Task<IJsonRpcResponse> HandleInternal(CancellationToken ct)
+    {
+        var param = Request.Params!.Value.Deserialize<TParam>();
+        return Handle(param!, ct);
+    }
 }
 
 [AttributeUsage(AttributeTargets.Class)]
