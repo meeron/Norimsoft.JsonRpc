@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Hosting;
 using Norimsoft.JsonRpc.Internal;
 
 namespace Norimsoft.JsonRpc;
@@ -63,9 +64,19 @@ internal class JsonRpcResultError : JsonRpcResultBase
 
 internal record RpcError(int Code, string Message, object? Data)
 {
-    internal static RpcError ParseError(object? data = null) => new(-32700, "Parse error", data);
+    internal static RpcError ParseError(Exception ex) => new(-32700, "Parse error", GetDataFromException(ex));
     internal static RpcError InvalidRequest(object? data = null) => new(-32600, "Invalid Request", data);
     internal static RpcError ServerError(Exception? ex = null) =>
-        new(-32000, "Server error", ex != null ? new { ex.Message, ex.StackTrace } : null);
+        new(-32000, "Server error", ex != null ? GetDataFromException(ex) : null);
     internal static RpcError MethodNotFound() => new(-32601, "Method not found", null);
+
+    private static object GetDataFromException(Exception ex)
+    {
+        if (JsonRpcConfiguration.Environment?.IsProduction() ?? false)
+        {
+            return new { ex.Message };
+        }
+        
+        return new { ex.Message, ex.StackTrace };
+    }
 }

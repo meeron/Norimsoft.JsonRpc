@@ -21,7 +21,7 @@ internal static class JsonRpcHandler
 
             if (rpcRequest == null)
             {
-                return new JsonRpcResultError(RpcError.ParseError("Not request found"));
+                throw new Exception("No request found");
             }
 
             if (rpcRequest.Id == null)

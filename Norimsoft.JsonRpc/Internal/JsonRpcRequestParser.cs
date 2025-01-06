@@ -49,10 +49,9 @@ internal static class JsonRpcRequestParser
             
             return (null, req);
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            // TODO: Configure exposing stack trace
-            return (new JsonRpcResultError(RpcError.ParseError(new { e.Message, e.StackTrace })), null);
+            return (new JsonRpcResultError(RpcError.ParseError(ex)), null);
         }
     }
 }

@@ -4,8 +4,9 @@ using SampleWebApp.Features.Products.Methods;
 var builder = WebApplication.CreateBuilder(args);
 var services = builder.Services;
 
-services.AddJsonRpc();
-//services.AddJsonRpc(config => config.RegisterMethodsFrom(typeof(GetProduct).Assembly));
+services.AddJsonRpc(config =>
+    config.RegisterMethodsFrom(typeof(GetProduct).Assembly)
+        .UseEnvironment(builder.Environment));
 
 var app = builder.Build();
 
