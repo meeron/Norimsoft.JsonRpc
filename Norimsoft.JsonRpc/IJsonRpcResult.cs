@@ -1,49 +1,64 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Http;
+using Norimsoft.JsonRpc.Internal;
 
 namespace Norimsoft.JsonRpc;
 
-public interface IJsonRpcResponse;
+public interface IJsonRpcResult : IResult;
 
-internal abstract class JsonRpcResponseBase : IJsonRpcResponse
+internal abstract class JsonRpcResultBase : IJsonRpcResult
 {
-    protected JsonRpcResponseBase(JsonElement? id)
+    protected JsonRpcResultBase(JsonElement? id)
     {
         Id = id;
     }
 
     [JsonPropertyName("jsonrpc")]
     public string JsonRpc { get; } = "2.0";
-
+    
     public JsonElement? Id { get; }
+    
+    protected abstract string GetJson();
+    
+    public Task ExecuteAsync(HttpContext httpContext)
+    {
+        httpContext.Response.StatusCode = 200;
+        httpContext.Response.ContentType = "application/json";
+        return httpContext.Response.WriteAsync(GetJson());
+    }
 }
 
-internal class JsonRpcResponseOk : JsonRpcResponseBase
+internal class JsonRpcResultOk : JsonRpcResultBase
 {
-    internal JsonRpcResponseOk(JsonElement id, object result)
+    internal JsonRpcResultOk(JsonElement id, object result)
         : base(id)
     {
         Result = result;
     }
-
+    
     public object Result { get; }
+
+    protected override string GetJson() => Json.Serialize(this);
 }
 
-internal class JsonRpcResponseError : JsonRpcResponseBase
+internal class JsonRpcResultError : JsonRpcResultBase
 {
-    internal JsonRpcResponseError(JsonElement id, RpcError rpcError)
+    internal JsonRpcResultError(JsonElement id, RpcError rpcError)
         : base(id)
     {
         Error = rpcError;
     }
     
-    internal JsonRpcResponseError(RpcError rpcError)
+    internal JsonRpcResultError(RpcError rpcError)
         : base(null)
     {
         Error = rpcError;
     }
-
+    
     public RpcError Error { get; }
+    
+    protected override string GetJson() => Json.Serialize(this);
 }
 
 internal record RpcError(int Code, string Message, object? Data)

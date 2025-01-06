@@ -7,16 +7,16 @@ public abstract class JsonRpcMethodBase
 {
     private JsonRpcRequest? _request;
 
-    protected IJsonRpcResponse Ok(object result) =>
-        new JsonRpcResponseOk(_request!.Id!.Value, result);
+    protected IJsonRpcResult Ok(object result) =>
+        new JsonRpcResultOk(_request!.Id!.Value, result);
     
-    protected IJsonRpcResponse Error(ushort code, string message, object? data = null) =>
-        new JsonRpcResponseError(_request!.Id!.Value, new RpcError(code, message, data));
+    protected IJsonRpcResult Error(ushort code, string message, object? data = null) =>
+        new JsonRpcResultError(_request!.Id!.Value, new RpcError(code, message, data));
     
-    internal IJsonRpcResponse Error(RpcError error) =>
-        new JsonRpcResponseError(_request!.Id!.Value, error);
+    internal IJsonRpcResult Error(RpcError error) =>
+        new JsonRpcResultError(_request!.Id!.Value, error);
 
-    internal virtual Task<IJsonRpcResponse> HandleInternal(JsonRpcRequest request, CancellationToken ct)
+    internal virtual Task<IJsonRpcResult> HandleInternal(JsonRpcRequest request, CancellationToken ct)
     {
         _request = request;
         return Task.FromResult(Ok(new {}));
@@ -25,9 +25,9 @@ public abstract class JsonRpcMethodBase
 
 public abstract class JsonRpcMethod : JsonRpcMethodBase
 {
-    public abstract Task<IJsonRpcResponse> Handle(CancellationToken ct);
+    public abstract Task<IJsonRpcResult> Handle(CancellationToken ct);
 
-    internal override Task<IJsonRpcResponse> HandleInternal(JsonRpcRequest request, CancellationToken ct)
+    internal override Task<IJsonRpcResult> HandleInternal(JsonRpcRequest request, CancellationToken ct)
     {
         base.HandleInternal(request, ct);
         return Handle(ct);
@@ -37,9 +37,9 @@ public abstract class JsonRpcMethod : JsonRpcMethodBase
 public abstract class JsonRpcMethod<TParam> : JsonRpcMethodBase
     where TParam : class
 {
-    public abstract Task<IJsonRpcResponse> Handle(TParam param, CancellationToken ct);
+    public abstract Task<IJsonRpcResult> Handle(TParam param, CancellationToken ct);
 
-    internal override Task<IJsonRpcResponse> HandleInternal(JsonRpcRequest request, CancellationToken ct)
+    internal override Task<IJsonRpcResult> HandleInternal(JsonRpcRequest request, CancellationToken ct)
     {
         base.HandleInternal(request, ct);
 
