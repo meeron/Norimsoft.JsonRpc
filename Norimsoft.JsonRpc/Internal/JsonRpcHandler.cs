@@ -1,4 +1,3 @@
-using System.Reflection;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,42 +18,28 @@ internal static class JsonRpcHandler
 
             if (rpcRequest == null)
             {
-                return Results.Ok(new JsonRpcResponseError(Error.ParseError("Not request found")));
+                return Results.Ok(new JsonRpcResponseError(RpcError.ParseError("Not request found")));
             }
 
             if (rpcRequest.Id == null)
             {
                 return Results.Ok(new JsonRpcResponseError(
-                    Error.ServerError(new NotImplementedException("Notifications are not implemented."))));
+                    RpcError.ServerError(new NotImplementedException("Notifications are not implemented."))));
             }
         
-            if (rpcRequest.Params == null)
+            var rpcMethod = ctx.RequestServices.GetKeyedService<JsonRpcMethodBase>(rpcRequest.Method);
+            if (rpcMethod == null)
             {
-                var rpcMethod = ctx.RequestServices.GetKeyedService<JsonRpcMethod>(rpcRequest.Method);
-                if (rpcMethod == null)
-                {
-                    return Results.Ok(new JsonRpcResponseError(Error.MethodNotFound()));
-                }
-
-                rpcMethod.SetRequest(rpcRequest);
-                var response = await rpcMethod.Handle(ct);
-                return Results.Ok(response);
+                return Results.Ok(new JsonRpcResponseError(RpcError.MethodNotFound()));
             }
             
-            var parameterRpcMethod = ctx.RequestServices.GetKeyedService<JsonRpcMethodBaseParam>(rpcRequest.Method);
-            if (parameterRpcMethod == null)
-            {
-                return Results.Ok(new JsonRpcResponseError(Error.MethodNotFound()));
-            }
-            
-            parameterRpcMethod.SetRequest(rpcRequest);
-            var res = await parameterRpcMethod.HandleInternal(ct);
+            var response = await rpcMethod.HandleInternal(rpcRequest, ct);
         
-            return Results.Ok(res);
+            return Results.Ok(response);
         }
         catch (Exception ex)
         {
-            return Results.Ok(new JsonRpcResponseError(Error.ServerError(ex)));
+            return Results.Ok(new JsonRpcResponseError(RpcError.ServerError(ex)));
         }
     }
 
@@ -69,34 +54,34 @@ internal static class JsonRpcHandler
 
             if (req.JsonRpc != "2.0")
             {
-                return (new JsonRpcResponseError(Error.InvalidRequest("Invalid jsonrpc version")), null);    
+                return (new JsonRpcResponseError(RpcError.InvalidRequest("Invalid jsonrpc version")), null);    
             }
 
             if (string.IsNullOrWhiteSpace(req.Method))
             {
-                return (new JsonRpcResponseError(Error.InvalidRequest("Missing method name")), null);
+                return (new JsonRpcResponseError(RpcError.InvalidRequest("Missing method name")), null);
             }
 
             if (req.Method.StartsWith("rpc."))
             {
-                return (new JsonRpcResponseError(Error.InvalidRequest("Cannot used internal rpc methods")), null);
+                return (new JsonRpcResponseError(RpcError.InvalidRequest("Cannot used internal rpc methods")), null);
             }
 
             if (req.Id != null && req.Id.Value.ValueKind != JsonValueKind.Number
                                && req.Id.Value.ValueKind != JsonValueKind.String)
             {
-                return (new JsonRpcResponseError(Error.InvalidRequest("Invalid id. Must be either integer or string")), null);
+                return (new JsonRpcResponseError(RpcError.InvalidRequest("Invalid id. Must be either integer or string")), null);
             }
 
             if (req.Id is { ValueKind: JsonValueKind.Number } && !req.Id.Value.TryGetInt32(out _))
             {
-                return (new JsonRpcResponseError(Error.InvalidRequest("Invalid id. Must either integer or string")), null);
+                return (new JsonRpcResponseError(RpcError.InvalidRequest("Invalid id. Must either integer or string")), null);
             }
             
             if (req.Params != null && req.Params.Value.ValueKind != JsonValueKind.Object
                                && req.Params.Value.ValueKind != JsonValueKind.Array)
             {
-                return (new JsonRpcResponseError(Error.InvalidRequest("Invalid params. Must be either array or object")), null);
+                return (new JsonRpcResponseError(RpcError.InvalidRequest("Invalid params. Must be either array or object")), null);
             }
             
             return (null, req);
@@ -104,7 +89,7 @@ internal static class JsonRpcHandler
         catch (Exception e)
         {
             // TODO: Configure exposing stack trace
-            return (new JsonRpcResponseError(Error.ParseError(new { e.Message, e.StackTrace })), null);
+            return (new JsonRpcResponseError(RpcError.ParseError(new { e.Message, e.StackTrace })), null);
         }
     }
 }

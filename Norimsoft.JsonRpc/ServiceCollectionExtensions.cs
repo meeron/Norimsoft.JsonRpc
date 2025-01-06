@@ -16,28 +16,16 @@ public static class ServiceCollectionExtensions
         var config = new JsonRpcConfiguration();
         configure(config);
 
-        var parameterlessMethodsTypes = config.MethodsAssemblies
+        var methodsTypes = config.MethodsAssemblies
             .SelectMany(a => a.GetTypes())
             .Where(t => t is { IsClass: true, IsAbstract: false, IsGenericType: false })
-            .Where(t => t.BaseType == typeof(JsonRpcMethod))
-            .ToArray();
-        
-        var parameterMethodsTypes = config.MethodsAssemblies
-            .SelectMany(a => a.GetTypes())
-            .Where(t => t is { IsClass: true, IsAbstract: false, IsGenericType: false })
-            .Where(t => t.BaseType != null && t.BaseType.BaseType == typeof(JsonRpcMethodBaseParam))
+            .Where(t => t.BaseType != null && t.BaseType.BaseType == typeof(JsonRpcMethodBase))
             .ToArray();
 
-        foreach (var type in parameterlessMethodsTypes)
+        foreach (var type in methodsTypes)
         {
             var nameAttribute = type.GetCustomAttribute<JsonRpcMethodNameAttribute>();
-            services.AddKeyedScoped(typeof(JsonRpcMethod), nameAttribute?.Name ?? type.Name, type);
-        }
-        
-        foreach (var type in parameterMethodsTypes)
-        {
-            var nameAttribute = type.GetCustomAttribute<JsonRpcMethodNameAttribute>();
-            services.AddKeyedScoped(typeof(JsonRpcMethodBaseParam), nameAttribute?.Name ?? type.Name, type);
+            services.AddKeyedScoped(typeof(JsonRpcMethodBase), nameAttribute?.Name ?? type.Name, type);
         }
     }
 }

@@ -31,26 +31,26 @@ internal class JsonRpcResponseOk : JsonRpcResponseBase
 
 internal class JsonRpcResponseError : JsonRpcResponseBase
 {
-    internal JsonRpcResponseError(JsonElement id, Error error)
+    internal JsonRpcResponseError(JsonElement id, RpcError rpcError)
         : base(id)
     {
-        Error = error;
+        Error = rpcError;
     }
     
-    internal JsonRpcResponseError(Error error)
+    internal JsonRpcResponseError(RpcError rpcError)
         : base(null)
     {
-        Error = error;
+        Error = rpcError;
     }
 
-    public Error Error { get; }
+    public RpcError Error { get; }
 }
 
-internal record Error(int Code, string Message, object? Data)
+internal record RpcError(int Code, string Message, object? Data)
 {
-    internal static Error ParseError(object? data = null) => new(-32700, "Parse error", data);
-    internal static Error InvalidRequest(object? data = null) => new(-32600, "Invalid Request", data);
-    internal static Error ServerError(Exception? ex = null) =>
+    internal static RpcError ParseError(object? data = null) => new(-32700, "Parse error", data);
+    internal static RpcError InvalidRequest(object? data = null) => new(-32600, "Invalid Request", data);
+    internal static RpcError ServerError(Exception? ex = null) =>
         new(-32000, "Server error", ex != null ? new { ex.Message, ex.StackTrace } : null);
-    internal static Error MethodNotFound() => new(-32601, "Method not found", null);
+    internal static RpcError MethodNotFound() => new(-32601, "Method not found", null);
 }
